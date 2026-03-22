@@ -218,47 +218,100 @@ options:
 
 ---
 
-## 세션 상태 관리 (영속화)
+## 학습 상태 저장 (파일 기반 영속화)
 
-학습/퀴즈/복습 세션의 진행 상태를 `~/.learnforge/sessions/<sessionId>.json`에 저장한다. **대화가 초기화되어도 이어서 진행할 수 있다.**
+`~/.learnforge/` 디렉토리에 학습 진행 상태를 파일로 저장한다. **대화가 초기화되어도 파일을 읽어 이어서 진행할 수 있다.**
+CLI 명령이 아니라 **Write 도구로 직접 JSON 파일을 쓰고, Read 도구로 직접 읽는다.**
 
-### 세션 시작 시
+### 1. 학습 컨텍스트 파일 — `~/.learnforge/current-learning.json`
 
-1. 내부적으로 `session load --mode <mode> --topic "<topic>"` 실행
-2. 이전 active 세션이 있으면 AskUserQuestion으로 물어본다:
+학습을 시작하거나 자료를 수집할 때마다 Write 도구로 이 파일을 갱신한다:
 
+```json
+{
+  "topic": "React Hooks",
+  "mode": "quiz",
+  "deck": "react",
+  "sourceIds": ["abc-123", "def-456"],
+  "materialPaths": ["~/.learnforge/materials/abc-123.md"],
+  "startedAt": "2026-03-22T10:00:00Z",
+  "lastActivityAt": "2026-03-22T10:30:00Z",
+  "status": "active"
+}
+```
+
+이 파일이 존재하면 새 대화에서 "이전에 [topic]을 [mode] 모드로 학습하고 있었어요. 이어서 할까요?"라고 AskUserQuestion으로 물어본다.
+
+### 2. 퀴즈 기록 파일 — `~/.learnforge/quiz-history/<topic-slug>.json`
+
+**퀴즈 문제를 하나 풀 때마다 즉시** Write 도구로 이 파일에 추가 저장한다. 매 문제마다 반드시 저장해야 한다.
+
+```json
+{
+  "topic": "React Hooks",
+  "difficulty": { "current": 2, "consecutiveCorrect": 1, "consecutiveWrong": 0 },
+  "score": { "total": 5, "correct": 3 },
+  "questions": [
+    {
+      "q": "useEffect의 cleanup 함수는 언제 실행되나요?",
+      "type": "short_answer",
+      "userAnswer": "컴포넌트 언마운트 시",
+      "correctAnswer": "언마운트 시 + 의존성 변경으로 재실행 직전",
+      "correct": false,
+      "difficulty": 2,
+      "cardId": "card-789",
+      "timestamp": "2026-03-22T10:05:00Z"
+    },
+    {
+      "q": "React의 상태 변경 시 화면 업데이트 과정은?",
+      "type": "multiple_choice",
+      "userAnswer": "A. Virtual DOM 비교 후 변경분만 실제 DOM에 반영",
+      "correctAnswer": "A. Virtual DOM 비교 후 변경분만 실제 DOM에 반영",
+      "correct": true,
+      "difficulty": 2,
+      "cardId": null,
+      "timestamp": "2026-03-22T10:07:00Z"
+    }
+  ],
+  "lastUpdated": "2026-03-22T10:07:00Z"
+}
+```
+
+**topic-slug**: 토픽 이름을 kebab-case로 변환 (예: "React Hooks" → `react-hooks.json`)
+
+### 저장 타이밍 (중요)
+
+| 이벤트 | 저장 파일 | 방법 |
+|--------|----------|------|
+| 자료 수집 완료 | `current-learning.json` | Write 도구 |
+| 학습 모드 시작 | `current-learning.json` | Write 도구 |
+| **퀴즈 문제 1개 풀 때마다** | `quiz-history/<topic>.json` | Write 도구 |
+| 학습/복습 세션 종료 | `current-learning.json` status→completed | Write 도구 |
+
+### 새 대화 시작 시 복원 절차
+
+1. Read 도구로 `~/.learnforge/current-learning.json` 읽기
+2. `status: "active"`이면 AskUserQuestion:
    ```
-   question: "이전에 진행하던 [topic] [mode] 세션이 있어요 (N문제 풀었고 정확도 X%). 이어서 할까요?"
-   header: "세션 복원"
+   question: "이전에 [topic]을 [mode] 모드로 학습 중이었어요. 이어서 할까요?"
+   header: "학습 복원"
    options:
      - label: "이어서 하기"
        description: "이전 진행 상태에서 계속합니다"
      - label: "새로 시작"
-       description: "이전 세션을 완료 처리하고 새로 시작합니다"
+       description: "새로운 학습을 시작합니다"
    ```
-
-3. "이어서 하기" 선택 시: 로드된 세션의 `questionsAsked`를 참고하여 중복 출제를 피하고, `difficulty.current` 레벨에서 이어서 진행한다
-4. "새로 시작" 선택 시: 이전 세션을 `status: 'completed'`로 저장하고 새 세션 생성
-
-### 매 문답 후 (silent)
-
-각 문제-답변 교환 후 내부적으로 세션 상태를 업데이트하고 저장한다:
-
-```bash
-echo '<updated-session-json>' | npx learnforge session save
-```
-
-업데이트 항목:
-- `questionsAsked`에 새 문제 기록 추가 (questionText, questionType, userAnswer, correct, difficulty, cardId, timestamp)
-- `score.total` +1, 정답이면 `score.correct` +1
-- `difficulty` 적응 (연속 2정답 → 레벨 업, 연속 2오답 → 레벨 다운)
-- `reviewedCardIds`에 복습한 카드 ID 추가
-- `lastActivityAt` 갱신
+3. "이어서 하기" 선택 시:
+   - Read 도구로 `quiz-history/<topic>.json` 읽기
+   - 이미 출제한 문제(`questions` 배열)를 확인하여 중복 출제 방지
+   - `difficulty.current` 레벨에서 이어서 진행
+   - `materialPaths`의 .md 파일을 Read 도구로 읽어 학습 맥락 복원
+4. "새로 시작" 선택 시: `current-learning.json`의 status를 "completed"로 갱신
 
 ### 세션 종료 시
 
 사용자가 "그만", "끝", "오늘은 여기까지" 등을 말하거나 자연스럽게 세션이 완료되면:
-1. `status: 'completed'`로 변경 후 저장
+1. `current-learning.json`의 status를 "completed"로 Write
 2. 세션 요약 제공 (총 문제수, 정답률, 난이도 변화 등)
 
 ---
