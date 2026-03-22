@@ -11,7 +11,8 @@ const DEFAULT_W: number[] = [
   0.40255, 1.18385, 3.173, 15.69105,  // w[0..3]: S0 per rating (Again/Hard/Good/Easy)
   7.1949,                              // w[4]: D0 anchor
   0.5345, 1.4604,                      // w[5]: D0 spread, w[6]: difficulty step per rating
-  0.0046, 1.54575, 0.1192, 1.01925,   // w[7..10]: recall stability multipliers
+  0.0046,                              // w[7]: difficulty mean-reversion weight
+  1.54575, 0.1192, 1.01925,           // w[8..10]: recall stability multipliers
   1.9395, 0.11, 0.29605, 2.2698,      // w[11..14]: forget stability
   0.2315, 2.9898,                      // w[15]: hard penalty, w[16]: easy bonus
   0.51655, 0.6621,                     // w[17..18]: short-term stability (unused here)

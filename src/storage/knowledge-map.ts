@@ -24,6 +24,7 @@ export function upsertKnowledgeEntry(db: Database.Database, entry: KnowledgeEntr
     INSERT INTO knowledge_map (id, concept, confidence, last_tested, related)
     VALUES (?, ?, ?, ?, ?)
     ON CONFLICT(concept) DO UPDATE SET
+      id          = excluded.id,
       confidence  = excluded.confidence,
       last_tested = excluded.last_tested,
       related     = excluded.related

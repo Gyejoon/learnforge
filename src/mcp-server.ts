@@ -9,6 +9,8 @@ import type Database from 'better-sqlite3';
 import {
   initDatabase,
   getAllSources,
+  insertSource,
+  getSourceById,
   insertCard,
   getCardById,
   updateCard,
@@ -182,24 +184,23 @@ export class LearnForgeHandlers {
 
     // Ensure a placeholder source exists when using 'manual' sourceId
     if (sourceId === 'manual') {
-      const existing = this.db
-        .prepare('SELECT id FROM sources WHERE id = ?')
-        .get('manual');
+      const existing = getSourceById(this.db, 'manual');
       if (!existing) {
-        this.db
-          .prepare(
-            `INSERT INTO sources (id, title, type, original_path, content_hash, metadata, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          )
-          .run(
-            'manual',
-            'Manual Cards',
-            'text',
-            'manual',
-            'manual',
-            '{}',
-            now,
-          );
+        insertSource(this.db, {
+          id: 'manual',
+          title: 'Manual Cards',
+          type: 'text',
+          originalPath: 'manual',
+          contentHash: 'manual',
+          metadata: {},
+          createdAt: now,
+        });
+      }
+    } else {
+      // Validate that the provided sourceId exists
+      const source = getSourceById(this.db, sourceId);
+      if (!source) {
+        throw new Error(`Source not found: ${sourceId}`);
       }
     }
 
@@ -569,10 +570,13 @@ export function createServer(dbPath: string): McpServer {
       deck: z.string().optional().describe('Target deck name'),
     },
     async ({ source, title, deck }) => {
-      const result = await handlers.handleIngest({ source, title, deck });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      try {
+        const result = await handlers.handleIngest({ source, title, deck });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -582,12 +586,13 @@ export function createServer(dbPath: string): McpServer {
     'List all ingested sources',
     {},
     () => {
-      const sources = handlers.handleSources();
-      return {
-        content: [
-          { type: 'text', text: JSON.stringify(sources, null, 2) },
-        ],
-      };
+      try {
+        const sources = handlers.handleSources();
+        return { content: [{ type: 'text', text: JSON.stringify(sources, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -603,10 +608,13 @@ export function createServer(dbPath: string): McpServer {
       deck: z.string().optional().describe('Deck to study from'),
     },
     ({ mode, topic, deck }) => {
-      const result = handlers.handleLearn({ mode, topic, deck });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      try {
+        const result = handlers.handleLearn({ mode, topic, deck });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -629,10 +637,13 @@ export function createServer(dbPath: string): McpServer {
       deck: z.string().optional().describe('Target deck name'),
     },
     ({ cards, sourceId, deck }) => {
-      const created = handlers.handleCreateCards({ cards, sourceId, deck });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(created, null, 2) }],
-      };
+      try {
+        const created = handlers.handleCreateCards({ cards, sourceId, deck });
+        return { content: [{ type: 'text', text: JSON.stringify(created, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -645,10 +656,13 @@ export function createServer(dbPath: string): McpServer {
       limit: z.number().optional().describe('Maximum number of cards'),
     },
     ({ deck, limit }) => {
-      const result = handlers.handleReview({ deck, limit });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      try {
+        const result = handlers.handleReview({ deck, limit });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -668,10 +682,13 @@ export function createServer(dbPath: string): McpServer {
         .describe('Rating: 1=Again, 2=Hard, 3=Good, 4=Easy'),
     },
     ({ cardId, rating }) => {
-      const result = handlers.handleAnswer({ cardId, rating });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      try {
+        const result = handlers.handleAnswer({ cardId, rating });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -691,10 +708,13 @@ export function createServer(dbPath: string): McpServer {
         .describe('Number of days for heatmap/forecast'),
     },
     ({ type, deck, days }) => {
-      const result = handlers.handleProgress({ type, deck, days });
-      return {
-        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
-      };
+      try {
+        const result = handlers.handleProgress({ type, deck, days });
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
@@ -709,10 +729,13 @@ export function createServer(dbPath: string): McpServer {
         .describe('Export format'),
     },
     ({ deck, format }) => {
-      const content = handlers.handleExport({ deck, format });
-      return {
-        content: [{ type: 'text', text: content }],
-      };
+      try {
+        const content = handlers.handleExport({ deck, format });
+        return { content: [{ type: 'text', text: content }] };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { content: [{ type: 'text', text: JSON.stringify({ error: message }) }], isError: true };
+      }
     },
   );
 
