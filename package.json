@@ -1,0 +1,29 @@
+{
+  "name": "learnforge",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local-first AI learning system with FSRS-6 spaced repetition",
+  "main": "dist/mcp-server.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/mcp-server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "setup-db": "tsx src/scripts/setup-db.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^11.8.2",
+    "pdf-parse": "^1.1.1",
+    "youtube-transcript": "^1.2.1",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.15.3",
+    "@types/pdf-parse": "^1.1.5",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
