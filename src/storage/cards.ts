@@ -160,3 +160,18 @@ export function getNewCards(
   const rows = db.prepare(sql).all(...params) as CardRow[];
   return rows.map(rowToCard);
 }
+
+export function getAllCards(db: Database.Database, deck?: string): Card[] {
+  let sql = 'SELECT * FROM cards';
+  const params: string[] = [];
+
+  if (deck !== undefined) {
+    sql += ' WHERE deck = ?';
+    params.push(deck);
+  }
+
+  sql += ' ORDER BY created_at ASC';
+
+  const rows = db.prepare(sql).all(...params) as CardRow[];
+  return rows.map(rowToCard);
+}
