@@ -91,4 +91,18 @@ describe('CLI', () => {
     const output = runCli(['export', '--format', 'tsv']);
     expect(output).toContain('front\tback\ttags\tdeck');
   });
+
+  it('setup --help로 설정 도움말을 표시해야 한다', () => {
+    const output = execFileSync('node', [CLI_PATH, 'setup', '--help'], {
+      encoding: 'utf-8',
+    });
+    expect(output).toContain('Initialize LearnForge');
+    expect(output).toContain('--skip-claude');
+  });
+
+  it('setup --skip-claude로 DB만 초기화해야 한다', () => {
+    const output = runCli(['setup', '--skip-claude']);
+    expect(output).toContain('[OK] Database');
+    expect(output).toContain('skipped');
+  });
 });

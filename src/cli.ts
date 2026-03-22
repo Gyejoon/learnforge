@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import { LearnForgeHandlers } from './core/index.js';
 import { createDatabase, resolveDbPath } from './core/index.js';
+import { runSetup } from './setup/index.js';
 import * as fs from 'fs';
 import type { LearningMode } from './types.js';
 
@@ -217,6 +218,40 @@ program
   .action((opts: { pretty: boolean }) => {
     const result = getHandlers().getStatus();
     output(result, opts.pretty);
+  });
+
+// ── setup ─────────────────────────────────────────────────────────────
+
+program
+  .command('setup')
+  .description('Initialize LearnForge: create database and configure Claude Desktop')
+  .option('--skip-claude', 'Skip Claude Desktop config injection', false)
+  .action((opts: { skipClaude: boolean }) => {
+    try {
+      const dbPath = program.opts().db as string | undefined;
+      const result = runSetup({
+        dbPath,
+        skipClaude: opts.skipClaude,
+      });
+
+      console.log('\n  LearnForge Setup\n');
+      console.log(`  [OK] Node.js ${result.nodeVersion}`);
+      console.log(`  [OK] Database: ${result.dbPath}`);
+
+      if (result.claudeConfig) {
+        console.log(
+          `  [OK] Claude Desktop config ${result.claudeConfig.action}: ${result.claudeConfig.configPath}`,
+        );
+      } else {
+        console.log('  [--] Claude Desktop config: skipped');
+      }
+
+      console.log('\n  Ready! Restart Claude Desktop to activate.\n');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`\n  [!!] ${message}\n`);
+      process.exit(1);
+    }
   });
 
 // ── Parse ───────────────────────────────────────────────────────────────
