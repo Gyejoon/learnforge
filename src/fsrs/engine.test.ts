@@ -305,6 +305,7 @@ describe('schedule', () => {
   it('fuzz adds variance to intervals > 2 days', () => {
     const engineWithFuzz = new FSRSEngine({ enableFuzz: true });
     const engineNoFuzz = new FSRSEngine({ enableFuzz: false });
+    const now = new Date();
 
     const makeReview = () =>
       makeNewCard({
@@ -317,14 +318,14 @@ describe('schedule', () => {
       });
 
     // Run many times; at least one should differ
-    const nofuzzDue = engineNoFuzz.schedule(makeReview(), Rating.Good).card.due;
+    const nofuzzDue = engineNoFuzz.schedule(makeReview(), Rating.Good, now).card.due;
     const fuzzDues = Array.from({ length: 20 }, () =>
-      engineWithFuzz.schedule(makeReview(), Rating.Good).card.due
+      engineWithFuzz.schedule(makeReview(), Rating.Good, now).card.due
     );
 
     // All no-fuzz results should be identical
     for (let i = 1; i < 5; i++) {
-      expect(engineNoFuzz.schedule(makeReview(), Rating.Good).card.due).toBe(nofuzzDue);
+      expect(engineNoFuzz.schedule(makeReview(), Rating.Good, now).card.due).toBe(nofuzzDue);
     }
 
     // At least some fuzz results should differ from no-fuzz

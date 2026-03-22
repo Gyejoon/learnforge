@@ -1,5 +1,5 @@
-import { CardState, Rating } from '../types';
-import type { Card, FSRSParameters, SchedulingResult } from '../types';
+import { CardState, Rating } from '../types.js';
+import type { Card, FSRSParameters, SchedulingResult } from '../types.js';
 
 // ── FSRS v4.5+ constants ────────────────────────────────────────────────────
 
@@ -267,7 +267,7 @@ export class FSRSEngine {
 
     const scheduledDays = Math.round(intervalDays);
 
-    const review: Omit<import('../types').Review, 'id'> = {
+    const review: Omit<import('../types.js').Review, 'id'> = {
       cardId: card.id,
       rating,
       elapsedDays,
