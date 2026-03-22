@@ -60,6 +60,42 @@ npx learnforge setup --db /custom/path/learnforge.db  # 커스텀 DB 경로
 }
 ```
 
+## Claude Code 플러그인으로 설치
+
+Claude Code에서 플러그인으로 설치하면 별도 설정 없이 바로 사용할 수 있습니다.
+
+```bash
+# 1. 마켓플레이스 등록
+/plugin marketplace add Gyejoon/learnforge
+
+# 2. 플러그인 설치
+/plugin install learnforge@learnforge-marketplace
+```
+
+> **주의:** 플러그인은 내부적으로 `npx learnforge` CLI를 사용합니다. 아래 두 가지 중 하나로 CLI를 준비해야 합니다:
+
+**방법 A — 글로벌 설치 (권장)**
+```bash
+git clone https://github.com/Gyejoon/learnforge.git
+cd learnforge
+npm install
+npm link              # 글로벌 PATH에 learnforge 등록
+learnforge setup      # DB 초기화
+```
+
+**방법 B — npx 자동 실행**
+```bash
+# learnforge 저장소를 클론하고 빌드만 해두면 npx가 자동으로 찾습니다
+git clone https://github.com/Gyejoon/learnforge.git
+cd learnforge
+npm install           # 빌드 자동 실행
+npx learnforge setup  # DB 초기화
+```
+
+설치 후 Claude Code에서 "학습하자", "퀴즈 내줘", "복습하자" 등을 말하면 자동으로 동작합니다.
+
+---
+
 ## 사용법
 
 Claude Desktop에서 자연어로 사용:
