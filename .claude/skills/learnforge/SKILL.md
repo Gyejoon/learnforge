@@ -1,155 +1,214 @@
 ---
 name: learnforge
-description: "AI 학습 시스템 — 자료 수집(ingest), 인지과학 기반 학습 세션, FSRS 간격반복 복습, 플래시카드 생성/관리를 CLI로 수행한다. 사용자가 '학습하자', '복습하자', '카드 만들어', '진행도 보여줘', 'PDF 학습', '퀴즈', '소크라테스', '파인만', 'Anki 내보내기' 등 학습 관련 요청을 하면 반드시 이 스킬을 사용한다. 학습 자료, 플래시카드, 간격반복, spaced repetition, FSRS 키워드가 등장해도 트리거한다."
+description: "AI 학습 시스템 — 자료 수집(ingest), 인지과학 기반 학습 세션, FSRS 간격반복 복습, 플래시카드 생성/관리를 수행한다. 사용자가 '학습하자', '복습하자', '카드 만들어', '진행도 보여줘', 'PDF 학습', '퀴즈', '소크라테스', '파인만', 'Anki 내보내기' 등 학습 관련 요청을 하면 반드시 이 스킬을 사용한다. 학습 자료, 플래시카드, 간격반복, spaced repetition, FSRS 키워드가 등장해도 트리거한다."
 ---
 
 # LearnForge
 
 학습 자료를 수집하고, 6가지 인지과학 기반 모드로 학습하며, FSRS 알고리즘으로 장기 기억을 관리하는 시스템.
-MCP 서버 설정 없이 CLI만으로 모든 기능을 사용할 수 있다.
+
+> **핵심 원칙: CLI 명령어는 절대 사용자에게 노출하지 않는다.** 모든 CLI 호출은 내부적으로 실행하고, 결과를 자연스러운 대화로 변환하여 전달한다.
 
 ## 설치 확인
 
-이 스킬을 처음 사용할 때, learnforge CLI가 동작하는지 확인한다:
+이 스킬을 처음 사용할 때, learnforge가 동작하는지 내부적으로 확인한다:
 
 ```bash
 npx learnforge status --pretty
 ```
 
-실패하면 사용자에게 설치를 안내한다:
+실패하면 사용자에게 안내한다: "LearnForge가 아직 설치되지 않았어요. 설치를 도와드릴까요?"
 
-```bash
-git clone https://github.com/Gyejoon/learnforge.git
-cd learnforge
-npm install          # 빌드 자동 실행
-npx learnforge setup --skip-claude
-```
+## 내부 CLI 레퍼런스
 
-## CLI 명령어
+> 이 섹션은 Claude가 내부적으로 사용하는 명령어다. **사용자에게 명령어를 보여주거나 실행을 요청하지 않는다.**
 
-모든 명령은 `npx learnforge`로 실행하고, 결과를 파싱하려면 `--pretty` 없이 실행한다 (JSON 출력).
-사용자에게 보여줄 때는 `--pretty`를 붙인다.
+| 기능 | 내부 명령어 |
+|------|-----------|
+| 자료 수집 | `npx learnforge ingest "<source>" --title "제목" --deck "덱"` |
+| 자료 목록 | `npx learnforge sources` |
+| 학습 세션 | `npx learnforge learn <mode> --topic "주제" --deck "덱"` |
+| 카드 생성 | `echo '<JSON>' \| npx learnforge create-cards --deck "덱"` |
+| 복습 카드 조회 | `npx learnforge review --deck "덱" --limit N` |
+| 복습 응답 | `npx learnforge answer <cardId> <rating>` |
+| 진행도 | `npx learnforge progress --type <type> --days N` |
+| 내보내기 | `npx learnforge export --format <format> --deck "덱"` |
+| 상태 | `npx learnforge status` |
+
+- 내부 파싱용: `--pretty` 없이 실행 (JSON 출력)
+- 사용자에게 보여줄 때: 결과를 대화체로 요약
+
+## 사용자 인터랙션 가이드
 
 ### 자료 수집
 
-```bash
-npx learnforge ingest "<텍스트 또는 파일경로 또는 URL>" --pretty
-npx learnforge ingest "<source>" --title "제목" --deck "덱이름" --pretty
-```
-
-지원 소스: 텍스트, 파일 경로(PDF/MD), URL, YouTube 링크
+사용자가 "이거 학습하자", "PDF 읽어줘" 등을 말하면:
+1. 내부적으로 `ingest` 실행
+2. 결과를 친근하게 요약: "학습 자료를 등록했어요! 총 N개 청크로 분리됐고, 바로 학습을 시작할 수 있어요."
+3. 다음 단계를 자연스럽게 제안: "어떤 방식으로 학습할까요? 자유 탐색, 퀴즈, 소크라테스 대화 등 원하는 방식을 골라주세요."
 
 ### 학습 세션
 
-```bash
-npx learnforge learn <mode> --topic "주제" --pretty
-npx learnforge learn <mode> --deck "덱이름" --pretty
-```
-
-| 모드 | 원리 | 설명 |
-|------|------|------|
-| `socratic` | 생성 효과 | AI가 전략적 질문으로 통찰 유도. 답을 직접 주지 않는다. |
-| `feynman` | 자기설명 효과 | 학습자가 설명하면 4축 피드백 (정확/부정확/누락/혼란) |
-| `quiz` | 인출 연습 | 적응형 난이도 퀴즈. 연속 정답 시 레벨 상승. |
-| `teach` | Protege Effect | AI가 무지한 학생 역할. 학습자가 가르친다. |
-| `explore` | 정교화 | 자유 Q&A, 요약, 비교, 마인드맵 |
-| `gap` | 메타인지 | 지식 격차 진단 + 강점/약점 보고서 |
-
-learn 명령의 결과에 `systemPrompt` 필드가 포함된다. 이 프롬프트의 역할과 행동 규칙을 따라 학습자와 대화를 진행한다. systemPrompt는 해당 학습 모드의 전문 튜터 역할을 정의하며, 반드시 그 지시사항을 준수해야 한다.
+`learn` 명령의 결과에 `systemPrompt` 필드가 포함된다. 이 프롬프트의 역할과 행동 규칙을 따라 학습자와 대화를 진행한다. systemPrompt는 해당 학습 모드의 전문 튜터 역할을 정의하며, 반드시 그 지시사항을 준수해야 한다.
 
 ### 플래시카드 생성
 
-```bash
-echo '<JSON 배열>' | npx learnforge create-cards --deck "덱이름" --pretty
-npx learnforge create-cards --file cards.json --pretty
-```
+학습 세션 중 핵심 개념이 나오면 자연스럽게 제안한다: "이 개념을 카드로 만들어 놓을까요?"
 
 카드 JSON 형식:
 ```json
 [{"front": "질문", "back": "답변", "cardType": "basic", "tags": "태그1,태그2"}]
 ```
-
 cardType: `basic`, `cloze`, `code`, `concept`
-
-학습 세션 중 핵심 개념이 나오면 자연스럽게 카드 생성을 제안한다.
-
-### 복습
-
-```bash
-npx learnforge review --pretty                    # 오늘 복습할 카드
-npx learnforge review --deck "덱이름" --limit 10 --pretty
-```
-
-카드를 학습자에게 보여주고 응답을 받은 후:
-
-```bash
-npx learnforge answer <cardId> <rating> --pretty
-```
-
-rating: `1`=Again(모름), `2`=Hard(어려움), `3`=Good(적절), `4`=Easy(쉬움)
-
-복습 세션에서는 카드의 front를 보여주고, 학습자가 답변한 후 back과 비교하여 적절한 rating을 함께 결정한다.
 
 ### 진행도
 
-```bash
-npx learnforge progress --pretty                              # 전체 개요
-npx learnforge progress --type deck --pretty                   # 덱별 통계
-npx learnforge progress --type heatmap --days 30 --pretty      # 30일 히트맵
-npx learnforge progress --type gaps --pretty                   # 지식 격차
-npx learnforge progress --type forecast --days 7 --pretty      # 7일 예측
-```
+사용자가 "얼마나 했어?", "진행도 보여줘" 등을 말하면 내부적으로 progress를 조회하고, 시각적으로 보기 좋게 포맷팅하여 전달한다.
+
+- `--type overview`: 전체 개요
+- `--type deck`: 덱별 통계
+- `--type heatmap --days 30`: 최근 활동 히트맵
+- `--type gaps`: 지식 격차
+- `--type forecast --days 7`: 복습 예측
 
 ### 내보내기
 
-```bash
-npx learnforge export --format tsv                 # Anki 호환
-npx learnforge export --format csv
-npx learnforge export --format json
-npx learnforge export --format mochi_md            # Mochi 호환
-npx learnforge export --format tsv --deck "덱이름"  # 특정 덱만
+"Anki로 내보내기", "카드 내보내줘" 등을 말하면 형식을 물어보고 내부적으로 export를 실행한다. 지원 형식: tsv, csv, json, mochi_md
+
+---
+
+## 문제 유형 시스템
+
+퀴즈(`quiz`) 모드, 복습(`review`), 지식 격차 진단(`gap`) 모드에서 문제를 출제할 때 **반드시** 아래 두 가지 유형 중 하나를 사용한다.
+
+### 1. 객관식 — AskUserQuestion 활용
+
+4지선다 문제에 사용한다. **반드시 AskUserQuestion 도구를 사용하여** 선택지를 제시한다.
+
+**절차:**
+1. 문제 설명과 맥락을 텍스트로 먼저 제시한다
+2. AskUserQuestion으로 선택지를 제시한다
+3. 사용자의 선택을 받은 후 정답 여부, 해설, 난이도 조절 결과를 자연어로 전달한다
+
+**AskUserQuestion 구성:**
+- `question`: 문제 본문 (명확하고 구체적으로)
+- `header`: 난이도 표시 (예: "Level 2", "초급", "심화")
+- `options`: 4개 선택지 — 정답 위치를 매 문제마다 랜덤하게 배치한다
+  - `label`: 선택지 번호 + 핵심 내용 (예: "A. Virtual DOM")
+  - `description`: 선택지에 대한 보충 설명 (선택지를 구분하는 데 도움이 되는 부연)
+- `multiSelect`: false (단일 선택)
+
+**예시 흐름:**
+
+> **📝 문제 2** (Level 2 · 중급)
+>
+> React에서 상태가 변경되면 어떤 과정을 거쳐 화면이 업데이트되나요?
+
+→ AskUserQuestion:
+```
+question: "React의 상태 변경 시 화면 업데이트 과정은?"
+header: "Level 2"
+options:
+  - label: "A. Virtual DOM 비교 후 변경분만 실제 DOM에 반영"
+    description: "Reconciliation 과정을 거치는 방식"
+  - label: "B. 전체 페이지를 새로고침"
+    description: "전통적인 서버 사이드 렌더링 방식"
+  - label: "C. 변경된 컴포넌트만 직접 DOM 조작"
+    description: "jQuery 스타일의 직접 DOM 조작"
+  - label: "D. Shadow DOM을 통해 격리된 업데이트"
+    description: "Web Components의 Shadow DOM 활용"
 ```
 
-### 기타
+→ 사용자 선택 후:
+> ✅ **정답!** Virtual DOM diffing → Reconciliation → 최소한의 DOM 업데이트 순서로 진행됩니다. (연속 정답 2회 — 다음 문제는 Level 3으로 올라갑니다!)
 
-```bash
-npx learnforge sources --pretty    # 등록된 학습 자료 목록
-npx learnforge status --pretty     # 시스템 상태
-```
+### 2. 주관식 — 일반 대화
+
+빈칸 채우기, 단답형, 서술형, 설명 요청 등에 사용한다. 별도 도구 없이 자연스러운 대화로 진행한다.
+
+**절차:**
+1. 문제를 텍스트로 제시한다
+2. 사용자가 자유롭게 텍스트로 답변한다
+3. 답변을 분석하여 피드백을 제공한다
+
+**예시 흐름:**
+
+> **📝 문제 3** (Level 2 · 중급)
+>
+> `useEffect`의 cleanup 함수는 언제 실행되나요? 그리고 왜 필요한지 간단히 설명해주세요.
+
+→ 사용자: "컴포넌트가 언마운트될 때 실행돼요. 이벤트 리스너 해제같은 거요."
+
+→ 피드백:
+> ✅ 맞아요! 한 가지 보충하자면, 언마운트뿐 아니라 **의존성이 변경되어 effect가 재실행되기 직전**에도 cleanup이 호출됩니다. 메모리 누수와 stale closure 방지에 핵심적인 역할을 해요.
+
+### 유형 선택 기준
+
+| 상황 | 유형 | 이유 |
+|------|------|------|
+| 정의, 개념 식별, 사실 확인 | 객관식 | 빠른 인출 연습, 명확한 정오 판단 |
+| 원리 적용, 코드 작성, 과정 설명 | 주관식 | 깊은 사고와 표현력 필요 |
+| 참/거짓 판단 | 객관식 | 2~4개 명제를 선택지로 구성 |
+| 비교/분석, 장단점 설명 | 주관식 | 구조화된 서술 필요 |
+
+**퀴즈 모드에서는 객관식과 주관식을 약 6:4 비율로 섞어 출제한다.** 한 유형만 연속으로 3문제 이상 내지 않는다.
+
+---
+
+## 복습 세션 (review)
+
+1. 내부적으로 `review` 명령으로 오늘 복습할 카드를 조회한다
+2. 카드 수와 예상 소요 시간을 안내한다: "오늘 복습할 카드가 N장 있어요. 약 M분 정도 걸릴 것 같아요."
+3. 각 카드를 유형에 맞게 출제한다:
+   - **basic 카드**: 객관식 또는 주관식 중 카드 내용에 적합한 방식 선택
+   - **cloze 카드**: 빈칸 채우기 (주관식)
+   - **code 카드**: 코드 관련 주관식
+   - **concept 카드**: 개념 설명 주관식 또는 객관식
+4. 답변 후 정답(back)과 비교하여 피드백을 주고, rating을 결정한다:
+   - 완전히 맞음 → rating 4 (Easy) 또는 3 (Good)
+   - 부분적으로 맞음 → rating 2 (Hard)
+   - 틀림/모름 → rating 1 (Again)
+5. 내부적으로 `answer` 명령으로 rating을 기록한다
+6. 모든 카드가 끝나면 세션 요약을 제공한다
+
+---
+
+## 학습 모드 자동 선택
+
+사용자가 모드 이름을 모를 수 있다. 의도에서 적절한 모드를 판단한다.
+
+| 사용자 의도 (예시) | 모드 | 이유 |
+|-------------------|------|------|
+| "이해하고 싶어", "처음 배우는 건데" | `explore` | 자유 탐색으로 전체 그림 파악 |
+| "깊이 이해하고 싶어", "왜 그런지 알고 싶어" | `socratic` | 전략적 질문으로 깊은 통찰 유도 |
+| "내 말로 정리하고 싶어", "설명할 수 있을 정도로" | `feynman` | 자기 설명 + 4축 피드백 |
+| "가르쳐주고 싶어", "설명하는 연습" | `teach` | 가르치기 효과로 설명력 강화 |
+| "시험 준비", "퀴즈", "문제 내줘" | `quiz` | 적응형 퀴즈로 인출 연습 |
+| "내 수준이 궁금해", "어디가 약한지" | `gap` | 메타인지 진단 + 격차 리포트 |
+
+복합 요청은 단계별로 분해한다. 예: "완벽하게 이해하고 암기까지"
+1. `explore`로 전체 개념 파악
+2. `feynman`으로 자기 설명 훈련
+3. `create-cards`로 핵심 카드화
+4. `teach`로 설명 연습
+
+이 경우 학습 로드맵을 제안하고 첫 단계부터 시작한다.
+
+---
 
 ## 워크플로우
 
 ### 새 자료 학습
 
-1. `ingest`로 자료 수집
-2. `learn`으로 학습 세션 시작 — systemPrompt 역할을 따라 대화 진행
-3. 핵심 개념을 `create-cards`로 카드화
-4. `progress`로 진행도 확인
+1. 자료 수집 → 결과 안내
+2. 학습 모드 제안 → 사용자 선택
+3. 학습 세션 진행 (systemPrompt 역할 준수)
+4. 핵심 개념 카드 생성 제안
+5. 진행도 안내
 
 ### 일일 복습
 
-1. `review`로 오늘 복습할 카드 조회
-2. 각 카드의 front를 보여주고 학습자의 답변을 받음
-3. back과 비교 후 `answer`로 rating 기록
-4. 모든 due 카드가 끝날 때까지 반복
-
-### 학습 모드 자동 선택
-
-사용자가 모드 이름을 모를 수 있다. 사용자의 의도에서 적절한 모드를 판단한다.
-
-| 사용자 의도 (예시) | 모드 | 이유 |
-|-------------------|------|------|
-| "이해하고 싶어", "개념을 파악하고 싶어", "처음 배우는 건데" | `explore` | 자유 탐색으로 전체 그림 파악 |
-| "깊이 이해하고 싶어", "왜 그런지 알고 싶어", "본질을 파헤치고 싶어" | `socratic` | 전략적 질문으로 깊은 통찰 유도 |
-| "남들에게 설명할 수 있을 정도로", "완벽하게 이해하고 싶어", "내 말로 정리하고 싶어" | `feynman` | 자기 설명 + 4축 피드백으로 빈틈 발견 |
-| "가르쳐주고 싶어", "누군가에게 설명하는 연습", "쉽게 풀어서 전달하고 싶어" | `teach` | 가르치기 효과로 설명력 강화 |
-| "시험 준비", "퀴즈", "테스트", "얼마나 아는지 확인", "문제 내줘" | `quiz` | 적응형 퀴즈로 인출 연습 |
-| "내 수준이 궁금해", "어디가 약한지", "뭘 모르는지 파악하고 싶어" | `gap` | 메타인지 진단 + 격차 리포트 |
-
-복합적인 요청은 단계별로 분해한다. 예를 들어 "완벽하게 이해하고 암기한 뒤 남들에게 설명하고 싶어"라면:
-1. `explore`로 전체 개념 파악
-2. `feynman`으로 자기 설명 훈련
-3. `create-cards`로 핵심 개념 카드화
-4. `teach`로 설명 연습
-
-이 경우 사용자에게 학습 로드맵을 제안하고, 첫 단계부터 시작한다.
+1. 복습 카드 조회 → 개수/시간 안내
+2. 카드별 문제 출제 (객관식/주관식 혼합)
+3. 답변 평가 → rating 기록
+4. 세션 종료 시 요약 제공
