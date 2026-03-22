@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first AI learning system with FSRS-6 spaced repetition",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "main": "dist/core/index.js",
   "bin": {
     "learnforge": "dist/cli.js"
@@ -13,13 +20,13 @@
     "./http": "./dist/adapters/http.js"
   },
   "scripts": {
+    "prepare": "tsc",
     "build": "tsc",
     "dev": "tsx src/adapters/mcp.ts",
     "dev:http": "tsx src/adapters/http.ts",
     "dev:cli": "tsx src/cli.ts",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "setup-db": "tsx src/scripts/setup-db.ts"
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
