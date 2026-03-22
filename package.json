@@ -3,10 +3,20 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Local-first AI learning system with FSRS-6 spaced repetition",
-  "main": "dist/mcp-server.js",
+  "main": "dist/core/index.js",
+  "bin": {
+    "learnforge": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/core/index.js",
+    "./mcp": "./dist/adapters/mcp.js",
+    "./http": "./dist/adapters/http.js"
+  },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/mcp-server.ts",
+    "dev": "tsx src/adapters/mcp.ts",
+    "dev:http": "tsx src/adapters/http.ts",
+    "dev:cli": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "setup-db": "tsx src/scripts/setup-db.ts"
@@ -14,6 +24,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
     "better-sqlite3": "^11.8.2",
+    "commander": "^14.0.3",
     "pdf-parse": "^1.1.1",
     "youtube-transcript": "^1.2.1",
     "zod": "^3.24.4"
