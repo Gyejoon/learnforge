@@ -34,6 +34,11 @@ npx learnforge status --pretty
 | 진행도 | `npx learnforge progress --type <type> --days N` |
 | 내보내기 | `npx learnforge export --format <format> --deck "덱"` |
 | 상태 | `npx learnforge status` |
+| 세션 목록 | `npx learnforge session list [--status active]` |
+| 세션 로드 | `npx learnforge session load [sessionId] [--mode quiz --topic "주제"]` |
+| 세션 저장 | `echo '<JSON>' \| npx learnforge session save` |
+| 세션 삭제 | `npx learnforge session delete <sessionId>` |
+| MD 변환 | `npx learnforge convert "<source>" [--title "제목"]` |
 
 - 내부 파싱용: `--pretty` 없이 실행 (JSON 출력)
 - 사용자에게 보여줄 때: 결과를 대화체로 요약
@@ -43,9 +48,11 @@ npx learnforge status --pretty
 ### 자료 수집
 
 사용자가 "이거 학습하자", "PDF 읽어줘" 등을 말하면:
-1. 내부적으로 `ingest` 실행
-2. 결과를 친근하게 요약: "학습 자료를 등록했어요! 총 N개 청크로 분리됐고, 바로 학습을 시작할 수 있어요."
+1. 내부적으로 `ingest` 실행 — **입력 파일이 .md가 아니면 자동으로 마크다운 변환본이 `~/.learnforge/materials/`에 저장된다**
+2. 결과를 친근하게 요약: "학습 자료를 등록했어요! 총 N개 청크로 분리됐고, 마크다운 버전도 저장해뒀어요."
 3. 다음 단계를 자연스럽게 제안: "어떤 방식으로 학습할까요? 자유 탐색, 퀴즈, 소크라테스 대화 등 원하는 방식을 골라주세요."
+
+사용자가 "변환해줘", "마크다운으로 만들어줘" 등 학습 없이 변환만 원하면 `convert` 명령을 사용한다.
 
 ### 학습 세션
 
@@ -208,6 +215,51 @@ options:
 4. `teach`로 설명 연습
 
 이 경우 학습 로드맵을 제안하고 첫 단계부터 시작한다.
+
+---
+
+## 세션 상태 관리 (영속화)
+
+학습/퀴즈/복습 세션의 진행 상태를 `~/.learnforge/sessions/<sessionId>.json`에 저장한다. **대화가 초기화되어도 이어서 진행할 수 있다.**
+
+### 세션 시작 시
+
+1. 내부적으로 `session load --mode <mode> --topic "<topic>"` 실행
+2. 이전 active 세션이 있으면 AskUserQuestion으로 물어본다:
+
+   ```
+   question: "이전에 진행하던 [topic] [mode] 세션이 있어요 (N문제 풀었고 정확도 X%). 이어서 할까요?"
+   header: "세션 복원"
+   options:
+     - label: "이어서 하기"
+       description: "이전 진행 상태에서 계속합니다"
+     - label: "새로 시작"
+       description: "이전 세션을 완료 처리하고 새로 시작합니다"
+   ```
+
+3. "이어서 하기" 선택 시: 로드된 세션의 `questionsAsked`를 참고하여 중복 출제를 피하고, `difficulty.current` 레벨에서 이어서 진행한다
+4. "새로 시작" 선택 시: 이전 세션을 `status: 'completed'`로 저장하고 새 세션 생성
+
+### 매 문답 후 (silent)
+
+각 문제-답변 교환 후 내부적으로 세션 상태를 업데이트하고 저장한다:
+
+```bash
+echo '<updated-session-json>' | npx learnforge session save
+```
+
+업데이트 항목:
+- `questionsAsked`에 새 문제 기록 추가 (questionText, questionType, userAnswer, correct, difficulty, cardId, timestamp)
+- `score.total` +1, 정답이면 `score.correct` +1
+- `difficulty` 적응 (연속 2정답 → 레벨 업, 연속 2오답 → 레벨 다운)
+- `reviewedCardIds`에 복습한 카드 ID 추가
+- `lastActivityAt` 갱신
+
+### 세션 종료 시
+
+사용자가 "그만", "끝", "오늘은 여기까지" 등을 말하거나 자연스럽게 세션이 완료되면:
+1. `status: 'completed'`로 변경 후 저장
+2. 세션 요약 제공 (총 문제수, 정답률, 난이도 변화 등)
 
 ---
 

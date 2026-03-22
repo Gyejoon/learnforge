@@ -5,7 +5,10 @@ import { LearnForgeHandlers } from './core/index.js';
 import { createDatabase, resolveDbPath } from './core/index.js';
 import { runSetup } from './setup/index.js';
 import * as fs from 'fs';
-import type { LearningMode } from './types.js';
+import type { LearningMode, SessionState } from './types.js';
+import { detectSourceType, extractText, extractMarkdown, extractCode, extractPdf, extractYoutube, extractUrl } from './ingestion/extractors.js';
+import { formatAsMarkdown } from './ingestion/markdown-formatter.js';
+import { saveMaterial } from './ingestion/materials.js';
 
 // ── Lazy-init handlers ──────────────────────────────────────────────────
 
@@ -218,6 +221,111 @@ program
   .action((opts: { pretty: boolean }) => {
     const result = getHandlers().getStatus();
     output(result, opts.pretty);
+  });
+
+// ── session ────────────────────────────────────────────────────────────
+
+const session = program
+  .command('session')
+  .description('Manage learning session state');
+
+session
+  .command('list')
+  .description('List saved sessions')
+  .option('--status <status>', 'Filter by status: active|completed|abandoned')
+  .option('--pretty', 'Pretty-print JSON output', false)
+  .action((opts: { status?: string; pretty: boolean }) => {
+    const result = getHandlers().handleSessionList(opts.status);
+    output(result, opts.pretty);
+  });
+
+session
+  .command('load')
+  .description('Load a session by ID or get most recent active session')
+  .argument('[sessionId]', 'Session ID (optional, defaults to most recent active)')
+  .option('--mode <mode>', 'Filter by learning mode')
+  .option('--topic <topic>', 'Filter by topic')
+  .option('--pretty', 'Pretty-print JSON output', false)
+  .action((sessionId: string | undefined, opts: { mode?: string; topic?: string; pretty: boolean }) => {
+    const result = getHandlers().handleSessionLoad(
+      sessionId,
+      opts.mode as LearningMode | undefined,
+      opts.topic,
+    );
+    if (result === null) {
+      output({ error: 'No active session found' }, opts.pretty);
+      process.exit(1);
+    }
+    output(result, opts.pretty);
+  });
+
+session
+  .command('save')
+  .description('Save session state from JSON file or stdin')
+  .option('--file <path>', 'JSON file with session state')
+  .option('--pretty', 'Pretty-print JSON output', false)
+  .action((opts: { file?: string; pretty: boolean }) => {
+    let stateData: string;
+    if (opts.file !== undefined) {
+      stateData = fs.readFileSync(opts.file, 'utf-8');
+    } else {
+      stateData = fs.readFileSync(0, 'utf-8');
+    }
+    const state = JSON.parse(stateData) as SessionState;
+    getHandlers().handleSessionSave(state);
+    output({ saved: true, sessionId: state.sessionId }, opts.pretty);
+  });
+
+session
+  .command('delete')
+  .description('Delete a saved session')
+  .argument('<sessionId>', 'Session ID to delete')
+  .option('--pretty', 'Pretty-print JSON output', false)
+  .action((sessionId: string, opts: { pretty: boolean }) => {
+    const deleted = getHandlers().handleSessionDelete(sessionId);
+    output({ deleted, sessionId }, opts.pretty);
+  });
+
+// ── convert ────────────────────────────────────────────────────────────
+
+program
+  .command('convert')
+  .description('Convert a source to markdown without ingesting into DB')
+  .argument('<source>', 'Source to convert (file path, URL, or YouTube link)')
+  .option('--title <title>', 'Title for the markdown file')
+  .option('--output <path>', 'Output file path (default: ~/.learnforge/materials/)')
+  .option('--pretty', 'Pretty-print JSON output', false)
+  .action(async (source: string, opts: { title?: string; output?: string; pretty: boolean }) => {
+    const sourceType = detectSourceType(source);
+
+    let content: string;
+    switch (sourceType) {
+      case 'pdf': content = await extractPdf(source); break;
+      case 'markdown': content = await extractMarkdown(source); break;
+      case 'code': content = await extractCode(source); break;
+      case 'youtube': content = await extractYoutube(source); break;
+      case 'url': content = await extractUrl(source); break;
+      default: content = await extractText(source); break;
+    }
+
+    const title = opts.title ?? source.split(/[/\\]/).pop() ?? 'Untitled';
+    const mdContent = formatAsMarkdown(content, {
+      title,
+      source,
+      type: sourceType,
+      ingested: new Date().toISOString(),
+    });
+
+    let outputPath: string;
+    if (opts.output !== undefined) {
+      fs.writeFileSync(opts.output, mdContent, 'utf-8');
+      outputPath = opts.output;
+    } else {
+      const id = crypto.randomUUID();
+      outputPath = saveMaterial(id, mdContent);
+    }
+
+    output({ path: outputPath, title, type: sourceType }, opts.pretty);
   });
 
 // ── setup ─────────────────────────────────────────────────────────────

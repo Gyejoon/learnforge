@@ -95,3 +95,44 @@ export interface SchedulingResult {
   card: Card;
   review: Omit<Review, 'id'>;
 }
+
+// Session state persistence types
+export type QuestionType = 'multiple_choice' | 'short_answer' | 'fill_blank' | 'true_false';
+export type SessionStatus = 'active' | 'completed' | 'abandoned';
+
+export interface QuestionRecord {
+  questionText: string;
+  questionType: QuestionType;
+  userAnswer: string;
+  correct: boolean;
+  difficulty: 1 | 2 | 3;
+  cardId: string | null;
+  timestamp: string;
+}
+
+export interface SessionDifficulty {
+  current: 1 | 2 | 3;
+  consecutiveCorrect: number;
+  consecutiveWrong: number;
+}
+
+export interface SessionScore {
+  total: number;
+  correct: number;
+}
+
+export interface SessionState {
+  version: 1;
+  sessionId: string;
+  mode: LearningMode;
+  topic: string;
+  deck: string | null;
+  difficulty: SessionDifficulty;
+  score: SessionScore;
+  questionsAsked: QuestionRecord[];
+  reviewedCardIds: string[];
+  modeSpecificState: Record<string, unknown>;
+  startedAt: string;
+  lastActivityAt: string;
+  status: SessionStatus;
+}

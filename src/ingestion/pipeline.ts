@@ -16,11 +16,14 @@ import {
   insertChunk,
   getSourceByHash,
 } from '../storage/index.js';
+import { formatAsMarkdown } from './markdown-formatter.js';
+import { saveMaterial } from './materials.js';
 
 export interface IngestResult {
   source: Source;
   chunks: Chunk[];
   totalTokens: number;
+  materialPath: string | null;
 }
 
 async function extractContent(input: string): Promise<string> {
@@ -59,9 +62,8 @@ export async function ingest(
   // Check for existing source with same hash
   const existing = getSourceByHash(db, contentHash);
   if (existing !== null) {
-    // Return existing source with empty chunks array (already stored)
     const totalTokens = Math.ceil(content.length / 4);
-    return { source: existing, chunks: [], totalTokens };
+    return { source: existing, chunks: [], totalTokens, materialPath: null };
   }
 
   // Build source record
@@ -102,7 +104,21 @@ export async function ingest(
 
   const totalTokens = chunks.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
 
-  return { source, chunks, totalTokens };
+  // Save markdown version of the material
+  let materialPath: string | null = null;
+  try {
+    const mdContent = formatAsMarkdown(content, {
+      title,
+      source: input,
+      type: sourceType,
+      ingested: now,
+    });
+    materialPath = saveMaterial(source.id, mdContent);
+  } catch {
+    // Non-critical: if MD save fails, ingestion still succeeds
+  }
+
+  return { source, chunks, totalTokens, materialPath };
 }
 
 function deriveTitle(input: string, sourceType: string): string {

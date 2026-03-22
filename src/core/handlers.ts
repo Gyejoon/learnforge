@@ -16,7 +16,15 @@ import { FSRSEngine } from '../fsrs/engine.js';
 import { ingest } from '../ingestion/pipeline.js';
 import { buildLearningSession } from '../learning/modes.js';
 import { CardState, Rating } from '../types.js';
-import type { Card, LearningMode, CardType, Review } from '../types.js';
+import type { Card, LearningMode, CardType, Review, SessionState } from '../types.js';
+import {
+  createSessionState,
+  saveSessionState,
+  loadSessionState,
+  getActiveSession,
+  listSessions,
+  deleteSession,
+} from '../session/state.js';
 
 // ── Handler interfaces ──────────────────────────────────────────────────────
 
@@ -29,6 +37,7 @@ export interface IngestInput {
 export interface IngestOutput {
   source: { id: string; title: string; type: string };
   stats: { chunks: number; totalTokens: number };
+  materialPath: string | null;
 }
 
 export interface LearnInput {
@@ -150,6 +159,7 @@ export class LearnForgeHandlers {
         chunks: result.chunks.length,
         totalTokens: result.totalTokens,
       },
+      materialPath: result.materialPath,
     };
   }
 
@@ -534,5 +544,32 @@ export class LearnForgeHandlers {
     const due = getDueCards(this.db, now);
     const newCards = getNewCards(this.db);
     return [...due, ...newCards];
+  }
+
+  // ── Session state handlers ───────────────────────────────────────────────
+
+  handleSessionCreate(input: { mode: LearningMode; topic: string; deck?: string }): SessionState {
+    const state = createSessionState(input);
+    saveSessionState(state);
+    return state;
+  }
+
+  handleSessionSave(state: SessionState): void {
+    saveSessionState(state);
+  }
+
+  handleSessionLoad(sessionId?: string, mode?: LearningMode, topic?: string): SessionState | null {
+    if (sessionId !== undefined) {
+      return loadSessionState(sessionId);
+    }
+    return getActiveSession(mode, topic);
+  }
+
+  handleSessionList(status?: string): SessionState[] {
+    return listSessions(status);
+  }
+
+  handleSessionDelete(sessionId: string): boolean {
+    return deleteSession(sessionId);
   }
 }
