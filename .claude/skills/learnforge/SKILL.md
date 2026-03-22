@@ -164,12 +164,27 @@ options:
    - **cloze 카드**: 빈칸 채우기 (주관식)
    - **code 카드**: 코드 관련 주관식
    - **concept 카드**: 개념 설명 주관식 또는 객관식
-4. 답변 후 정답(back)과 비교하여 피드백을 주고, rating을 결정한다:
-   - 완전히 맞음 → rating 4 (Easy) 또는 3 (Good)
-   - 부분적으로 맞음 → rating 2 (Hard)
-   - 틀림/모름 → rating 1 (Again)
-5. 내부적으로 `answer` 명령으로 rating을 기록한다
-6. 모든 카드가 끝나면 세션 요약을 제공한다
+4. 답변 후 정답(back)과 비교하여 피드백을 제공한다
+5. **AskUserQuestion으로 체감 난이도를 묻는다:**
+
+   ```
+   question: "이 카드는 어땠나요?"
+   header: "난이도"
+   options:
+     - label: "😵 모르겠어요"
+       description: "전혀 기억나지 않았거나 완전히 틀렸어요"
+     - label: "😓 어려웠어요"
+       description: "힌트나 시간이 많이 필요했어요"
+     - label: "👍 적당했어요"
+       description: "약간 생각했지만 맞출 수 있었어요"
+     - label: "⚡ 쉬웠어요"
+       description: "바로 떠올랐어요, 완벽하게 알고 있어요"
+   ```
+
+   선택 → rating 매핑: 모르겠어요=1(Again), 어려웠어요=2(Hard), 적당했어요=3(Good), 쉬웠어요=4(Easy)
+
+6. 내부적으로 `answer` 명령으로 해당 rating을 기록한다
+7. 다음 카드로 넘어간다. 모든 카드가 끝나면 세션 요약을 제공한다
 
 ---
 
