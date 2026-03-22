@@ -1,0 +1,28 @@
+{
+  "name": "learnforge-marketplace",
+  "owner": {
+    "name": "Gyejoon",
+    "email": "gyejoon@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "LearnForge — AI 학습 시스템 플러그인 마켓플레이스",
+    "version": "0.1.0",
+    "pluginRoot": "./plugin"
+  },
+  "plugins": [
+    {
+      "name": "learnforge",
+      "source": "./plugin",
+      "description": "AI 학습 시스템 — FSRS 간격반복, 인지과학 기반 6가지 학습 모드, 플래시카드 관리. PDF/YouTube/URL/코드 수집, 퀴즈/소크라테스/파인만/가르치기/탐색/격차분석 모드 지원.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Gyejoon"
+      },
+      "homepage": "https://github.com/Gyejoon/learnforge",
+      "repository": "https://github.com/Gyejoon/learnforge",
+      "license": "MIT",
+      "keywords": ["learning", "spaced-repetition", "FSRS", "flashcards", "quiz", "education"],
+      "category": "education"
+    }
+  ]
+}
