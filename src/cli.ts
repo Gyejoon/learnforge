@@ -9,6 +9,7 @@ import type { LearningMode, SessionState } from './types.js';
 import { detectSourceType, extractText, extractMarkdown, extractCode, extractPdf, extractYoutube, extractUrl } from './ingestion/extractors.js';
 import { formatAsMarkdown } from './ingestion/markdown-formatter.js';
 import { saveMaterial } from './ingestion/materials.js';
+import type { SetupTarget } from './setup/index.js';
 
 // ── Lazy-init handlers ──────────────────────────────────────────────────
 
@@ -332,29 +333,40 @@ program
 
 program
   .command('setup')
-  .description('Initialize LearnForge: create database and configure Claude Desktop')
+  .description('Initialize LearnForge: create database and configure platform integrations')
+  .option('--target <target>', 'Setup target: claude|openclaw|all')
   .option('--skip-claude', 'Skip Claude Desktop config injection', false)
-  .action((opts: { skipClaude: boolean }) => {
+  .action((opts: { target?: string; skipClaude: boolean }) => {
     try {
       const dbPath = program.opts().db as string | undefined;
+      const target = opts.target as SetupTarget | undefined;
+      if (target !== undefined && !['claude', 'openclaw', 'all'].includes(target)) {
+        throw new Error('Invalid setup target. Must be one of: claude, openclaw, all.');
+      }
       const result = runSetup({
         dbPath,
         skipClaude: opts.skipClaude,
+        target,
       });
 
       console.log('\n  LearnForge Setup\n');
       console.log(`  [OK] Node.js ${result.nodeVersion}`);
       console.log(`  [OK] Database: ${result.dbPath}`);
-
-      if (result.claudeConfig) {
-        console.log(
-          `  [OK] Claude Desktop config ${result.claudeConfig.action}: ${result.claudeConfig.configPath}`,
-        );
-      } else {
-        console.log('  [--] Claude Desktop config: skipped');
+      if (result.wrapperPath) {
+        console.log(`  [OK] LearnForge wrapper: ${result.wrapperPath}`);
       }
 
-      console.log('\n  Ready! Restart Claude Desktop to activate.\n');
+      const claudePrefix = result.platforms.claude.status === 'configured' ? '[OK]' : '  [--]';
+      console.log(`  ${claudePrefix} ${result.platforms.claude.message}`);
+
+      const openClawPrefix = result.platforms.openclaw.status === 'configured'
+        ? '[OK]'
+        : result.platforms.openclaw.status === 'warning'
+          ? '[!!]'
+          : '[--]';
+      console.log(`  ${openClawPrefix} ${result.platforms.openclaw.message}`);
+
+      console.log('\n  Ready! Restart your client if needed.\n');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`\n  [!!] ${message}\n`);

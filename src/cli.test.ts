@@ -97,6 +97,7 @@ describe('CLI', () => {
       encoding: 'utf-8',
     });
     expect(output).toContain('Initialize LearnForge');
+    expect(output).toContain('--target');
     expect(output).toContain('--skip-claude');
   });
 

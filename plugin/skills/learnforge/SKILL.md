@@ -14,7 +14,7 @@ description: "AI 학습 시스템 — 자료 수집(ingest), 인지과학 기반
 이 스킬을 처음 사용할 때, learnforge가 동작하는지 내부적으로 확인한다:
 
 ```bash
-npx learnforge status --pretty
+~/.learnforge/bin/learnforge status --pretty
 ```
 
 실패하면 사용자에게 안내한다: "LearnForge가 아직 설치되지 않았어요. 설치를 도와드릴까요?"
@@ -25,20 +25,20 @@ npx learnforge status --pretty
 
 | 기능 | 내부 명령어 |
 |------|-----------|
-| 자료 수집 | `npx learnforge ingest "<source>" --title "제목" --deck "덱"` |
-| 자료 목록 | `npx learnforge sources` |
-| 학습 세션 | `npx learnforge learn <mode> --topic "주제" --deck "덱"` |
-| 카드 생성 | `echo '<JSON>' \| npx learnforge create-cards --deck "덱"` |
-| 복습 카드 조회 | `npx learnforge review --deck "덱" --limit N` |
-| 복습 응답 | `npx learnforge answer <cardId> <rating>` |
-| 진행도 | `npx learnforge progress --type <type> --days N` |
-| 내보내기 | `npx learnforge export --format <format> --deck "덱"` |
-| 상태 | `npx learnforge status` |
-| 세션 목록 | `npx learnforge session list [--status active]` |
-| 세션 로드 | `npx learnforge session load [sessionId] [--mode quiz --topic "주제"]` |
-| 세션 저장 | `echo '<JSON>' \| npx learnforge session save` |
-| 세션 삭제 | `npx learnforge session delete <sessionId>` |
-| MD 변환 | `npx learnforge convert "<source>" [--title "제목"]` |
+| 자료 수집 | `~/.learnforge/bin/learnforge ingest "<source>" --title "제목" --deck "덱"` |
+| 자료 목록 | `~/.learnforge/bin/learnforge sources` |
+| 학습 세션 | `~/.learnforge/bin/learnforge learn <mode> --topic "주제" --deck "덱"` |
+| 카드 생성 | `echo '<JSON>' \| ~/.learnforge/bin/learnforge create-cards --deck "덱"` |
+| 복습 카드 조회 | `~/.learnforge/bin/learnforge review --deck "덱" --limit N` |
+| 복습 응답 | `~/.learnforge/bin/learnforge answer <cardId> <rating>` |
+| 진행도 | `~/.learnforge/bin/learnforge progress --type <type> --days N` |
+| 내보내기 | `~/.learnforge/bin/learnforge export --format <format> --deck "덱"` |
+| 상태 | `~/.learnforge/bin/learnforge status` |
+| 세션 목록 | `~/.learnforge/bin/learnforge session list [--status active]` |
+| 세션 로드 | `~/.learnforge/bin/learnforge session load [sessionId] [--mode quiz --topic "주제"]` |
+| 세션 저장 | `echo '<JSON>' \| ~/.learnforge/bin/learnforge session save` |
+| 세션 삭제 | `~/.learnforge/bin/learnforge session delete <sessionId>` |
+| MD 변환 | `~/.learnforge/bin/learnforge convert "<source>" [--title "제목"]` |
 
 - 내부 파싱용: `--pretty` 없이 실행 (JSON 출력)
 - 사용자에게 보여줄 때: 결과를 대화체로 요약

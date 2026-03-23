@@ -5,16 +5,38 @@ import {
   injectClaudeDesktopConfig,
   type ClaudeConfigResult,
 } from './claude-config.js';
+import {
+  ensureLearnForgeWrapper,
+  getLearnForgeCliPath,
+  getSkillSourcePath,
+  setupOpenClaw,
+  type OpenClawSetupResult,
+} from './openclaw.js';
+
+export type SetupTarget = 'claude' | 'openclaw' | 'all';
 
 export interface SetupOptions {
   dbPath?: string;
   skipClaude: boolean;
+  target?: SetupTarget;
+}
+
+export interface SetupPlatformResult {
+  status: 'configured' | 'skipped' | 'warning';
+  action?: ClaudeConfigResult['action'];
+  configPath?: string;
+  skillPath?: string;
+  message: string;
 }
 
 export interface SetupResult {
   nodeVersion: string;
   dbPath: string;
-  claudeConfig: ClaudeConfigResult | null;
+  wrapperPath: string | null;
+  platforms: {
+    claude: SetupPlatformResult;
+    openclaw: SetupPlatformResult;
+  };
 }
 
 export function checkNodeVersion(): void {
@@ -22,6 +44,22 @@ export function checkNodeVersion(): void {
   if (major < 20) {
     throw new Error(`Node.js 20+ required (current: ${process.version})`);
   }
+}
+
+function resolveTargets(options: SetupOptions): Array<'claude' | 'openclaw'> {
+  if (options.target === 'claude') {
+    return ['claude'];
+  }
+  if (options.target === 'openclaw') {
+    return ['openclaw'];
+  }
+  if (options.target === 'all') {
+    return ['claude', 'openclaw'];
+  }
+  if (options.skipClaude) {
+    return [];
+  }
+  return ['claude'];
 }
 
 export function runSetup(options: SetupOptions): SetupResult {
@@ -33,22 +71,52 @@ export function runSetup(options: SetupOptions): SetupResult {
   const db = createDatabase(dbPath);
   db.close();
 
-  let claudeConfig: ClaudeConfigResult | null = null;
+  const targets = resolveTargets(options);
+  const wrapperPath = ensureLearnForgeWrapper(getLearnForgeCliPath());
+  const platforms: SetupResult['platforms'] = {
+    claude: {
+      status: 'skipped',
+      message: 'Claude Desktop config: skipped',
+    },
+    openclaw: {
+      status: 'skipped',
+      message: 'OpenClaw setup: skipped',
+    },
+  };
 
-  if (!options.skipClaude) {
+  if (targets.includes('claude')) {
     const configPath = getClaudeDesktopConfigPath();
     const mcpServerPath = getMcpServerPath();
-    claudeConfig = injectClaudeDesktopConfig(
+    const claudeConfig = injectClaudeDesktopConfig(
       configPath,
       mcpServerPath,
       dbPath,
       defaultDbPath,
     );
+    platforms.claude = {
+      status: 'configured',
+      action: claudeConfig.action,
+      configPath: claudeConfig.configPath,
+      message: `Claude Desktop config ${claudeConfig.action}: ${claudeConfig.configPath}`,
+    };
+  }
+
+  if (targets.includes('openclaw')) {
+    const openClawResult: OpenClawSetupResult = setupOpenClaw({
+      wrapperPath: wrapperPath!,
+      skillSourcePath: getSkillSourcePath(),
+    });
+    platforms.openclaw = {
+      status: openClawResult.status,
+      skillPath: openClawResult.skillPath,
+      message: openClawResult.message,
+    };
   }
 
   return {
     nodeVersion: process.version,
     dbPath,
-    claudeConfig,
+    wrapperPath,
+    platforms,
   };
 }

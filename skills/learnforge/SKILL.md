@@ -14,7 +14,7 @@ description: "AI 학습 시스템 — 자료 수집(ingest), 인지과학 기반
 이 스킬을 처음 사용할 때, learnforge가 동작하는지 내부적으로 확인한다:
 
 ```bash
-~/.learnforge/bin/learnforge status --pretty
+{{LEARNFORGE_BIN}} status --pretty
 ```
 
 실패하면 사용자에게 안내한다: "LearnForge가 아직 설치되지 않았어요. 설치를 도와드릴까요?"
@@ -25,20 +25,20 @@ description: "AI 학습 시스템 — 자료 수집(ingest), 인지과학 기반
 
 | 기능 | 내부 명령어 |
 |------|-----------|
-| 자료 수집 | `~/.learnforge/bin/learnforge ingest "<source>" --title "제목" --deck "덱"` |
-| 자료 목록 | `~/.learnforge/bin/learnforge sources` |
-| 학습 세션 | `~/.learnforge/bin/learnforge learn <mode> --topic "주제" --deck "덱"` |
-| 카드 생성 | `echo '<JSON>' \| ~/.learnforge/bin/learnforge create-cards --deck "덱"` |
-| 복습 카드 조회 | `~/.learnforge/bin/learnforge review --deck "덱" --limit N` |
-| 복습 응답 | `~/.learnforge/bin/learnforge answer <cardId> <rating>` |
-| 진행도 | `~/.learnforge/bin/learnforge progress --type <type> --days N` |
-| 내보내기 | `~/.learnforge/bin/learnforge export --format <format> --deck "덱"` |
-| 상태 | `~/.learnforge/bin/learnforge status` |
-| 세션 목록 | `~/.learnforge/bin/learnforge session list [--status active]` |
-| 세션 로드 | `~/.learnforge/bin/learnforge session load [sessionId] [--mode quiz --topic "주제"]` |
-| 세션 저장 | `echo '<JSON>' \| ~/.learnforge/bin/learnforge session save` |
-| 세션 삭제 | `~/.learnforge/bin/learnforge session delete <sessionId>` |
-| MD 변환 | `~/.learnforge/bin/learnforge convert "<source>" [--title "제목"]` |
+| 자료 수집 | `{{LEARNFORGE_BIN}} ingest "<source>" --title "제목" --deck "덱"` |
+| 자료 목록 | `{{LEARNFORGE_BIN}} sources` |
+| 학습 세션 | `{{LEARNFORGE_BIN}} learn <mode> --topic "주제" --deck "덱"` |
+| 카드 생성 | `echo '<JSON>' \| {{LEARNFORGE_BIN}} create-cards --deck "덱"` |
+| 복습 카드 조회 | `{{LEARNFORGE_BIN}} review --deck "덱" --limit N` |
+| 복습 응답 | `{{LEARNFORGE_BIN}} answer <cardId> <rating>` |
+| 진행도 | `{{LEARNFORGE_BIN}} progress --type <type> --days N` |
+| 내보내기 | `{{LEARNFORGE_BIN}} export --format <format> --deck "덱"` |
+| 상태 | `{{LEARNFORGE_BIN}} status` |
+| 세션 목록 | `{{LEARNFORGE_BIN}} session list [--status active]` |
+| 세션 로드 | `{{LEARNFORGE_BIN}} session load [sessionId] [--mode quiz --topic "주제"]` |
+| 세션 저장 | `echo '<JSON>' \| {{LEARNFORGE_BIN}} session save` |
+| 세션 삭제 | `{{LEARNFORGE_BIN}} session delete <sessionId>` |
+| MD 변환 | `{{LEARNFORGE_BIN}} convert "<source>" [--title "제목"]` |
 
 - 내부 파싱용: `--pretty` 없이 실행 (JSON 출력)
 - 사용자에게 보여줄 때: 결과를 대화체로 요약
